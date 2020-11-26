@@ -4,7 +4,7 @@ from lxml import html
 from zipfile import ZipFile
 from PIL import Image
 
-from settings import *
+from kmz_processor.settings import *
 
 pd.options.mode.chained_assignment = None
 
