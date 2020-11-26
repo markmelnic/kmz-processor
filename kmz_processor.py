@@ -60,35 +60,6 @@ class KMZ:
                 self.globe_matrix.append(sub_df)
                 self.df.drop(sub_df.index, inplace = True)
 
-    def _find_coords_item(self, coords: list) -> list:
-        if coords[0] > 0: # first 10
-            gset = [None, -7]
-            if coords[1] > 0: # last 21
-                sset = [22, None]
-            else:
-                sset = [None, -21]
-        else: # last 7
-            gset = [10, None]
-            if coords[1] > 0: # last 21
-                sset = [22, None]
-            else:
-                sset = [None, -21]
-
-        for item in self.globe_matrix[gset[0]:gset[1]]:
-            for i, row in item.iloc[sset[0]:sset[1]].iterrows():
-                if (row['north'] >= coords[0] >= row['south']) and (row['west'] <= coords[1] <= row['east']):
-                    return row.tolist()
-
-    def _load_images(self, images, single=False) -> list:
-        if single:
-            return Image.open(self.kmz_zip.open(ZIP_KMZ_IMG_FOLDER+"/"+images))
-        else:
-            if images:
-                kmz_imgs = [Image.open(self.kmz_zip.open(ZIP_KMZ_IMG_FOLDER+"/"+image)) for image in images]
-            else:
-                kmz_imgs = [Image.open(self.kmz_zip.open(image)) for image in self.kmz_zip.namelist() if image.split("/")[0] == ZIP_KMZ_IMG_FOLDER]
-            return kmz_imgs
-
     def _generate_image(self, images: list, fullvh=False, vertical=False, horizontal=False):
         if horizontal:
             widths, heights = zip(*(img.size for img in images))
@@ -117,8 +88,37 @@ class KMZ:
 
         return new_image
 
+    def coords_item(self, coords: list) -> list:
+        if coords[0] > 0: # first 10
+            gset = [None, -7]
+            if coords[1] > 0: # last 21
+                sset = [22, None]
+            else:
+                sset = [None, -21]
+        else: # last 7
+            gset = [10, None]
+            if coords[1] > 0: # last 21
+                sset = [22, None]
+            else:
+                sset = [None, -21]
+
+        for item in self.globe_matrix[gset[0]:gset[1]]:
+            for i, row in item.iloc[sset[0]:sset[1]].iterrows():
+                if (row['north'] >= coords[0] >= row['south']) and (row['west'] <= coords[1] <= row['east']):
+                    return row.tolist()
+
+    def load_images(self, images, single=False) -> list:
+        if single:
+            return Image.open(self.kmz_zip.open(ZIP_KMZ_IMG_FOLDER+"/"+images))
+        else:
+            if images:
+                kmz_imgs = [Image.open(self.kmz_zip.open(ZIP_KMZ_IMG_FOLDER+"/"+image)) for image in images]
+            else:
+                kmz_imgs = [Image.open(self.kmz_zip.open(image)) for image in self.kmz_zip.namelist() if image.split("/")[0] == ZIP_KMZ_IMG_FOLDER]
+            return kmz_imgs
+
     def global_imager(self, ) -> None:
-        globe_images = [self._load_images(matrix["image"].tolist()) for matrix in self.globe_matrix]
+        globe_images = [self.load_images(matrix["image"].tolist()) for matrix in self.globe_matrix]
         self._generate_image(globe_images, fullvh=True).save(KMZ_GLOBAL_IMAGE)
 
 
