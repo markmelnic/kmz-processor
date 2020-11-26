@@ -9,46 +9,53 @@ from settings import *
 pd.options.mode.chained_assignment = None
 
 class KMZ:
-    def __init__(self) -> None:
+    def __init__(self, csv=False) -> None:
         self.kmz_zip = ZipFile(glob.glob("*.kmz")[0], "r")
-        if not os.path.isfile(CSV_KML_DOC):
-            self.kml_file = self.kmz_zip.open(ZIP_KML_DOC, "r").read()
-            self._generate_csv()
-        self._load_df()
+        #if not os.path.isfile(CSV_KML_DOC):
+        self.kml_file = self.kmz_zip.open(ZIP_KML_DOC, "r").read()
+
+        self.globe_matrix = []
+        if csv:
+            self._load_df(to_csv=csv)
+        else:
+            self._load_df()
         self._arrange_df()
 
-    def _generate_csv(self,) -> None:
+    def _load_data(self, ):
         kml_content = html.fromstring(self.kml_file)
-        with open(CSV_KML_DOC, "w", newline="") as kml_csv:
-            kml_csv_writer = csv.writer(kml_csv)
-            kml_csv_writer.writerow(
-                ["index", "image", "draw_order", "north", "south", "east", "west", "rotation"]
-            )
-            for item in kml_content.cssselect("Document GroundOverlay"):
-                image = item.cssselect("name")[0].text_content()
-                index = image[23:-4]
-                draw_order = item.cssselect("drawOrder")[0].text_content()
-                coords = item.cssselect("LatLonBox")[0]
-                north = coords.cssselect("north")[0].text_content()
-                south = coords.cssselect("south")[0].text_content()
-                east = coords.cssselect("east")[0].text_content()
-                west = coords.cssselect("west")[0].text_content()
-                rotation = coords.cssselect("rotation")[0].text_content()
-                kml_csv_writer.writerow(
-                    [index, image, draw_order, north, south, east, west, rotation]
-                )
+        temp = []
+        for item in kml_content.cssselect("Document GroundOverlay"):
+            image = item.cssselect("name")[0].text_content()
+            index = image[23:-4]
+            draw_order = item.cssselect("drawOrder")[0].text_content()
+            coords = item.cssselect("LatLonBox")[0]
+            north = float(coords.cssselect("north")[0].text_content())
+            south = float(coords.cssselect("south")[0].text_content())
+            east = float(coords.cssselect("east")[0].text_content())
+            west = float(coords.cssselect("west")[0].text_content())
+            rotation = coords.cssselect("rotation")[0].text_content()
+            temp.append([index, image, draw_order, north, south, east, west, rotation])
+        return temp
 
-    def _load_df(self, ) -> None:
-        self.df = pd.read_csv(CSV_KML_DOC)
+    def _load_df(self, to_csv=False) -> None:
+        if to_csv:
+            self._data_to_csv(self._load_data())
+            self.df = pd.read_csv(CSV_KML_DOC)
+        else:
+            self.df = pd.DataFrame(self._load_data(), columns=DF_COLUMNS)
         self.df.sort_values(by='north', ascending=False, inplace = True)
 
+    def _data_to_csv(self, data: list) -> None:
+        with open(CSV_KML_DOC, "w", newline="") as kml_csv:
+            kml_csv_writer = csv.writer(kml_csv)
+            kml_csv_writer.writerow(DF_COLUMNS)
+            for item in data:
+                kml_csv_writer.writerow(item)
+
     def _arrange_df(self, ) -> None:
-        self.globe_matrix = []
         for i, row in self.df.iterrows():
             sub_df = self.df.loc[(self.df['north'] == row['north']) & (self.df['south'] == row['south'])]
-            if sub_df.empty:
-                continue
-            else:
+            if not sub_df.empty:
                 sub_df.sort_values(by='west', inplace = True)
                 self.globe_matrix.append(sub_df)
                 self.df.drop(sub_df.index, inplace = True)
@@ -117,4 +124,4 @@ class KMZ:
 
 if __name__ == "__main__":
     kmz = KMZ()
-    #kmz.global_imager()
+    kmz.global_imager()
