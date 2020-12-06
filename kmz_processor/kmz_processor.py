@@ -133,3 +133,21 @@ class KMZ:
         if images == []:
             images = [self.load_images(matrix["image"].tolist()) for matrix in self.globe_matrix]
         self._generate_image(images, fullvh=True).save(KMZ_GLOBAL_IMAGE)
+
+    def purify_images(self, ) -> None:
+        globe_images = [self.load_images(matrix["image"].tolist()) for matrix in self.globe_matrix]
+        new_images = []
+        counter = 0
+        for row in globe_images:
+            new_images_temp = []
+            for image in row:
+                counter += 1
+                width, height = image.size
+                pixelmap = image.load()
+                for i in range(int(width)):
+                    for j in range(int(height)):
+                        pixelmap[i, j] = self._closest_color(pixelmap[i, j])
+                new_images_temp.append(image)
+                print(counter, "images processed")
+            new_images.append(new_images_temp)
+        self.global_imager(new_images)
