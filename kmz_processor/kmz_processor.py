@@ -1,4 +1,5 @@
 import glob, csv, os
+from numpy.matrixlib.defmatrix import matrix
 import pandas as pd
 import numpy as np
 from lxml import html
@@ -86,8 +87,8 @@ class KMZ:
                 new_image.paste(img, (0,y_offset))
                 y_offset += img.size[1]
         elif fullvh:
-            vertical_set = [self._generate_image(image, horizontal=True) for image in images]
-            new_image = self._generate_image(vertical_set, vertical=True)
+            horizontal_sets = [self._generate_image(image_list, horizontal=True) for image_list in images]
+            new_image = self._generate_image(horizontal_sets, vertical=True)
 
         return new_image
 
@@ -99,6 +100,11 @@ class KMZ:
                 color_diff = sqrt(abs(r - cr) ** 2 + abs(g - cg) ** 2 + abs(b - cb) ** 2)
                 color_diffs.append((color_diff, color))
             return min(color_diffs)[1]
+
+    def _matrix_geo_coords(self, px_coords: list, item: list, width: int, height: int) -> tuple:   
+        lat = item[0] - ((item[0] - item[1]) / width * px_coords[1])
+        lng = item[3] + ((item[2] - item[3]) / height * px_coords[0])
+        return (lat, lng)
 
     def coords_item(self, coords: list) -> list:
         if coords[0] > 0: # first 10
@@ -135,19 +141,26 @@ class KMZ:
         self._generate_image(images, fullvh=True).save(KMZ_GLOBAL_IMAGE)
 
     def purify_images(self, ) -> None:
-        globe_images = [self.load_images(matrix["image"].tolist()) for matrix in self.globe_matrix]
-        new_images = []
-        counter = 0
-        for row in globe_images:
-            new_images_temp = []
-            for image in row:
-                counter += 1
-                width, height = image.size
-                pixelmap = image.load()
-                for i in range(int(width)):
-                    for j in range(int(height)):
-                        pixelmap[i, j] = self._closest_color(pixelmap[i, j])
-                new_images_temp.append(image)
-                print(counter, "images processed")
-            new_images.append(new_images_temp)
-        self.global_imager(new_images)
+        with open(CSV_COORDS, "w", newline="") as csv_db:
+            csv_db_wirter = csv.writer(csv_db)
+
+            globe_images = [self.load_images(matrix["image"].tolist()) for matrix in self.globe_matrix]
+            image_coords = [
+                [[item[3], item[4], item[5], item[6]] for i, item in matrix.iterrows()]
+                for matrix in self.globe_matrix
+                ]
+
+            new_images = []
+            for row, coord_row in zip(globe_images, image_coords):
+                new_images_temp = []
+                for image, coords in zip(row, coord_row):
+                    width, height = image.size
+                    pixelmap = image.load()
+                    for i in range(int(width)):
+                        for j in range(int(height)):
+                            pixelmap[i, j] = self._closest_color(pixelmap[i, j])
+                            geopos = self._matrix_geo_coords([i, j], coords, width, height)
+                            csv_db_wirter.writerow([geopos[0], geopos[1], pixelmap[i, j]])
+                    new_images_temp.append(image)
+                new_images.append(new_images_temp)
+            self.global_imager(new_images)
