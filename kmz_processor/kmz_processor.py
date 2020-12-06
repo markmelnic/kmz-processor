@@ -1,8 +1,11 @@
 import glob, csv, os
 import pandas as pd
+import numpy as np
 from lxml import html
 from zipfile import ZipFile
 from PIL import Image
+from math import sqrt
+from scipy.spatial import distance
 
 from kmz_processor.settings import *
 
@@ -88,6 +91,15 @@ class KMZ:
 
         return new_image
 
+    def _closest_color(self, rgb: list) -> tuple:
+            r, g, b = rgb
+            color_diffs = []
+            for color in COLORS:
+                cr, cg, cb = color
+                color_diff = sqrt(abs(r - cr) ** 2 + abs(g - cg) ** 2 + abs(b - cb) ** 2)
+                color_diffs.append((color_diff, color))
+            return min(color_diffs)[1]
+
     def coords_item(self, coords: list) -> list:
         if coords[0] > 0: # first 10
             gset = [None, -7]
@@ -117,11 +129,7 @@ class KMZ:
                 kmz_imgs = [Image.open(self.kmz_zip.open(image)) for image in self.kmz_zip.namelist() if image.split("/")[0] == ZIP_KMZ_IMG_FOLDER]
             return kmz_imgs
 
-    def global_imager(self, ) -> None:
-        globe_images = [self.load_images(matrix["image"].tolist()) for matrix in self.globe_matrix]
-        self._generate_image(globe_images, fullvh=True).save(KMZ_GLOBAL_IMAGE)
-
-
-if __name__ == "__main__":
-    kmz = KMZ()
-    kmz.global_imager()
+    def global_imager(self, images=[]) -> None:
+        if images == []:
+            images = [self.load_images(matrix["image"].tolist()) for matrix in self.globe_matrix]
+        self._generate_image(images, fullvh=True).save(KMZ_GLOBAL_IMAGE)
