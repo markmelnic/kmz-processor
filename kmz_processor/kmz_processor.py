@@ -1,11 +1,9 @@
-import glob, csv, os
+import glob, csv
 import pandas as pd
-import numpy as np
 from lxml import html
 from zipfile import ZipFile
 from PIL import Image
 from math import sqrt
-from scipy.spatial import distance
 
 from kmz_processor.settings import *
 
@@ -14,7 +12,6 @@ pd.options.mode.chained_assignment = None
 class KMZ:
     def __init__(self, csv=False) -> None:
         self.kmz_zip = ZipFile(glob.glob("*.kmz")[0], "r")
-        #if not os.path.isfile(CSV_KML_DOC):
         self.kml_file = self.kmz_zip.open(ZIP_KML_DOC, "r").read()
 
         self.globe_matrix = []
