@@ -133,10 +133,10 @@ class KMZ:
                         row = row.tolist()
                         if int(row[0]) == images[0][0]:
                             edges[0] = row[3]
-                            edges[2] = row[5]
+                            edges[3] = row[6]
                         elif int(row[0]) == images[2][2]:
                             edges[1] = row[4]
-                            edges[3] = row[6]
+                            edges[2] = row[5]
 
                 for i, s in enumerate(images):
                     for j, g in enumerate(s):
