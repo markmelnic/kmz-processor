@@ -116,12 +116,28 @@ class KMZ:
                 if (row['north'] >= coords[0] >= row['south']) and (row['west'] <= coords[1] <= row['east']):
                     return row.tolist()
 
-    def load_images(self, images, single=False) -> list:
+    def load_images(self, images, single=False, neighbours=False) -> list:
         if single:
-            return Image.open(self.kmz_zip.open(ZIP_KMZ_IMG_FOLDER+"/"+images))
+            if neighbours:
+                f = [images[:-7], images[-4:]]
+                c = int(images[:-4][-3:])
+                images = [
+                    [c+42 , c+43, c+44],
+                    [c-1  , c    , c+1],
+                    [c-44, c-43, c-42],
+                    ]
+                for i, s in enumerate(images):
+                    for j, g in enumerate(s):
+                        images[i][j] = f[0]+str(g)+f[1]
+                return self._generate_image(self.load_images(images), fullvh=True).show()
+            else:
+                return Image.open(self.kmz_zip.open(ZIP_KMZ_IMG_FOLDER+"/"+images))
         else:
             if images:
-                kmz_imgs = [Image.open(self.kmz_zip.open(ZIP_KMZ_IMG_FOLDER+"/"+image)) for image in images]
+                if type(images[0]) == list:
+                    kmz_imgs = [[Image.open(self.kmz_zip.open(ZIP_KMZ_IMG_FOLDER+"/"+image)) for image in image_set] for image_set in images]
+                else:
+                    kmz_imgs = [Image.open(self.kmz_zip.open(ZIP_KMZ_IMG_FOLDER+"/"+image)) for image in images]
             else:
                 kmz_imgs = [Image.open(self.kmz_zip.open(image)) for image in self.kmz_zip.namelist() if image.split("/")[0] == ZIP_KMZ_IMG_FOLDER]
             return kmz_imgs
