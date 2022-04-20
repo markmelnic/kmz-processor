@@ -1,1 +1,1 @@
-from kmz_processor import KMZ
+from .kmz_processor import KMZ
